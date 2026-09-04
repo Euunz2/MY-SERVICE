@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>강사 배정 현황</title>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+<style>
+/* ---------------------------------------------------------------
+   토큰. 한 벌만 정의하고 다크모드에서 값만 갈아끼웁니다.
+   상태색은 강조색이 아니라 의미색입니다. 트레이 / 배지 / 칩에서
+   같은 상태는 항상 같은 값을 씁니다.
+---------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --bg:        #f4f5f7;
+  --tray:      #ffffff;
+  --surface:   #ffffff;
+  --hairline:  rgb(16 20 28 / .07);
+  --inner-lip: rgb(255 255 255 / .9);
+
+  --ink:       #1c2027;
+  --ink-soft:  #4a515d;
+  --muted:     #79818f;
+
+  --ok-tray:   #eaf2ed;  --ok-fg:   #2f6c50;  --ok-edge:   rgb(47 108 80 / .22);
+  --wait-tray: #f8eee0;  --wait-fg: #8a5a15;  --wait-edge: rgb(138 90 21 / .24);
+  --hold-tray: #e8eef7;  --hold-fg: #33608f;  --hold-edge: rgb(51 96 143 / .22);
+  --done-tray: #eeeff2;  --done-fg: #6d7481;  --done-edge: rgb(109 116 129 / .2);
+
+  --shadow: 0 1px 2px rgb(16 20 28 / .04), 0 8px 24px -12px rgb(16 20 28 / .14);
+  --shadow-lift: 0 2px 4px rgb(16 20 28 / .05), 0 18px 40px -16px rgb(16 20 28 / .22);
+
+  --ease: cubic-bezier(.32, .72, 0, 1);
+
+  /* 둥근 정도는 한 벌로 고정합니다.
+     트레이 22 / 카드 16 / 아바타 12 / 누르는 것은 전부 알약. */
+  --r-tray: 22px;
+  --r-card: 16px;
+  --r-avatar: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg:        #121418;
+    --tray:      #1b1e24;
+    --surface:   #212530;
+    --hairline:  rgb(255 255 255 / .09);
+    --inner-lip: rgb(255 255 255 / .06);
+
+    --ink:       #e9ebef;
+    --ink-soft:  #b6bcc7;
+    --muted:     #8b939f;
+
+    --ok-tray:   #1c2c25;  --ok-fg:   #7cc4a1;  --ok-edge:   rgb(124 196 161 / .26);
+    --wait-tray: #322718;  --wait-fg: #dfae66;  --wait-edge: rgb(223 174 102 / .28);
+    --hold-tray: #1d2733;  --hold-fg: #8fb8e0;  --hold-edge: rgb(143 184 224 / .26);
+    --done-tray: #24262c;  --done-fg: #99a1ad;  --done-edge: rgb(153 161 173 / .22);
+
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 10px 28px -14px rgb(0 0 0 / .6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / .34), 0 22px 46px -18px rgb(0 0 0 / .7);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+               "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+  font-size: 15px;
+  line-height: 1.62;
+  letter-spacing: -.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 아주 옅은 결. 고정 레이어라 스크롤 중 다시 그리지 않습니다. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: .028;
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter>\
+<rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 24px 96px;
+}
+
+/* ------------------------------ 머리말 ------------------------------ */
+
+.disclaimer {
+  margin: 0 0 22px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4.4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -.032em;
+  line-height: 1.14;
+}
+
+.lede {
+  margin: 0 0 34px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 46ch;
+  word-break: keep-all;
+}
+
+/* ------------------------------ 필터 ------------------------------ */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.01em;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--tray);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background .45s var(--ease), color .45s var(--ease),
+              border-color .45s var(--ease), transform .35s var(--ease);
+}
+
+.chip:hover { color: var(--ink); border-color: rgb(120 130 150 / .35); }
+.chip:active { transform: scale(.975); }
+.chip:focus-visible { outline: 2px solid var(--hold-fg); outline-offset: 3px; }
+
+.chip[aria-pressed="true"] {
+  background: var(--chip-tray, var(--tray));
+  color: var(--chip-fg, var(--ink));
+  border-color: var(--chip-edge, var(--hairline));
+}
+
+.chip.t-all  { --chip-tray: var(--ink); --chip-fg: var(--bg); --chip-edge: var(--ink); }
+.chip.t-ok   { --chip-tray: var(--ok-tray);   --chip-fg: var(--ok-fg);   --chip-edge: var(--ok-edge); }
+.chip.t-wait { --chip-tray: var(--wait-tray); --chip-fg: var(--wait-fg); --chip-edge: var(--wait-edge); }
+.chip.t-hold { --chip-tray: var(--hold-tray); --chip-fg: var(--hold-fg); --chip-edge: var(--hold-edge); }
+.chip.t-done { --chip-tray: var(--done-tray); --chip-fg: var(--done-fg); --chip-edge: var(--done-edge); }
+
+.chip .n {
+  margin-left: 7px;
+  font-variant-numeric: tabular-nums;
+  opacity: .62;
+}
+.chip[aria-pressed="true"] .n { opacity: .8; }
+
+.tally {
+  margin: 0 0 26px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------ 명단 ------------------------------ */
+
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
+  gap: 14px;
+}
+
+/* 바깥 트레이. 상태색이 여기에 얹히고, 안쪽 카드는 그 위에 놓입니다. */
+.tray {
+  padding: 6px;
+  border-radius: var(--r-tray);
+  background: var(--tone-tray);
+  border: 1px solid var(--tone-edge);
+  transition: transform .55s var(--ease), box-shadow .55s var(--ease);
+}
+
+.tray[hidden] { display: none; }
+
+.tray.t-ok   { --tone-tray: var(--ok-tray);   --tone-edge: var(--ok-edge);   --tone-fg: var(--ok-fg); }
+.tray.t-wait { --tone-tray: var(--wait-tray); --tone-edge: var(--wait-edge); --tone-fg: var(--wait-fg); }
+.tray.t-hold { --tone-tray: var(--hold-tray); --tone-edge: var(--hold-edge); --tone-fg: var(--hold-fg); }
+.tray.t-done { --tone-tray: var(--done-tray); --tone-edge: var(--done-edge); --tone-fg: var(--done-fg); }
+
+.tray:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+
+/* 안쪽 카드 */
+.card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 20px 19px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 var(--inner-lip), var(--shadow);
+}
+
+.avatar {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  border-radius: var(--r-avatar);
+  background: linear-gradient(180deg, rgb(127 140 165 / .1), rgb(127 140 165 / .04));
+  padding: 3px;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+.content { flex: 1; min-width: 0; }
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.028em;
+  line-height: 1.2;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.01em;
+  padding: 6px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--tone-fg);
+  background: var(--tone-tray);
+  border: 1px solid var(--tone-edge);
+}
+
+.rows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 16px;
+  row-gap: 6px;
+  font-size: 14px;
+}
+
+.rows dt {
+  white-space: nowrap;      /* 라벨은 절대 줄바꿈되지 않습니다 */
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.rows dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.rows dd.strong {
+  color: var(--ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.t-done .card { opacity: .78; }
+
+/* ------------------------------ 등장 모션 ------------------------------
+   MOTION_INTENSITY 4. 뒤에서 IntersectionObserver 가 붙입니다.
+   목적은 연출이 아니라 순서 인지: 카드가 위에서 아래로 차례로 자리를 잡습니다.
+   transform / opacity 만 움직입니다.
+------------------------------------------------------------------------ */
+
+.tray {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.tray.shown {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity .65s var(--ease) calc(var(--i, 0) * 42ms),
+    transform .65s var(--ease) calc(var(--i, 0) * 42ms),
+    box-shadow .55s var(--ease);
+}
+
+.tray.shown:hover { transition-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tray { opacity: 1; transform: none; }
+  .tray, .tray.shown, .chip, .card { transition: none !important; }
+  .tray:hover { transform: none; }
+}
+
+/* ------------------------------ 좁은 화면 ------------------------------ */
+
+@media (max-width: 767px) {
+  .page { padding: 40px 16px 72px; }
+  .roster { grid-template-columns: 1fr; }
+  .card { padding: 16px; gap: 13px; }
+  .avatar { width: 54px; height: 54px; flex-basis: 54px; }
+  .rows { grid-template-columns: 1fr; row-gap: 2px; }
+  .rows dt { margin-top: 7px; }
+}
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<!-- 픽셀 캐릭터 도안 한 벌.
+     사람마다 바뀌는 것은 --hair 와 --cloth 두 값뿐입니다. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="pixel-person" viewBox="0 0 16 16">
+    <rect x="5" y="3" width="6" height="7" fill="#f0c9a4"/>
+    <rect x="4" y="2" width="8" height="2" fill="var(--hair)"/>
+    <rect x="5" y="4" width="6" height="1" fill="var(--hair)"/>
+    <rect x="4" y="4" width="1" height="5" fill="var(--hair)"/>
+    <rect x="11" y="4" width="1" height="5" fill="var(--hair)"/>
+    <rect x="6" y="6" width="1" height="1" fill="#3a3630"/>
+    <rect x="9" y="6" width="1" height="1" fill="#3a3630"/>
+    <rect x="7" y="8" width="2" height="1" fill="#c98d6d"/>
+    <rect x="7" y="10" width="2" height="1" fill="#e0b189"/>
+    <rect x="4" y="11" width="8" height="5" fill="var(--cloth)"/>
+    <rect x="2" y="12" width="2" height="4" fill="var(--cloth)"/>
+    <rect x="12" y="12" width="2" height="4" fill="var(--cloth)"/>
+    <rect x="2" y="12" width="2" height="4" fill="#000" opacity=".14"/>
+    <rect x="12" y="12" width="2" height="4" fill="#000" opacity=".14"/>
+    <rect x="7" y="11" width="2" height="1" fill="#e0b189"/>
+  </symbol>
+</svg>
+
+<main class="page">
+
+  <p class="disclaimer">예시 자료로 만든 연습 화면입니다</p>
+
+  <h1>강사 배정 현황</h1>
+  <p class="lede">12개 모듈, 9월 3일부터 10월 31일까지. 회신을 기다리는 분부터 확인하세요.</p>
+
+  <div class="filters" id="filters" role="group" aria-label="상태로 거르기"></div>
+  <p class="tally" id="tally" aria-live="polite"></p>
+
+  <ul class="roster" id="roster">
+
+    <li class="tray t-wait">
+      <article class="card">
+        <svg class="avatar" style="--hair:#3b2f2a; --cloth:#e9a4a4"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">최유라</h2>
+            <span class="badge">강의안 회신 대기</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M4 기획자를 위한 금융데이터 활용 실무</dd>
+            <dt>일정</dt><dd class="strong">9월 5일 (토) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-ok">
+      <article class="card">
+        <svg class="avatar" style="--hair:#1f2937; --cloth:#7fb3d5"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">김도현</h2>
+            <span class="badge">확정</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M1 데이터 리터러시 기초</dd>
+            <dt>일정</dt><dd class="strong">9월 3일 (목) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-ok">
+      <article class="card">
+        <svg class="avatar" style="--hair:#5c4033; --cloth:#9bc995"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">박서연</h2>
+            <span class="badge">확정</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M2 금융 데이터 다루기</dd>
+            <dt>일정</dt><dd class="strong">9월 4일 (금) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-hold">
+      <article class="card">
+        <svg class="avatar" style="--hair:#2b2b2b; --cloth:#f0c47b"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">이준호</h2>
+            <span class="badge">일정 조율 중</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M3 리스크 데이터 이해</dd>
+            <dt>일정</dt><dd class="strong">9월 11일 (목) 10:00~17:00</dd>
+            <dt>장소</dt><dd>강남 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-ok">
+      <article class="card">
+        <svg class="avatar" style="--hair:#7a4a2b; --cloth:#b3a7e0"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">정민아</h2>
+            <span class="badge">확정</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M5 데이터 기반 서비스 기획</dd>
+            <dt>일정</dt><dd class="strong">9월 12일 (금) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-wait">
+      <article class="card">
+        <svg class="avatar" style="--hair:#3a3a4a; --cloth:#86c7c1"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">한지훈</h2>
+            <span class="badge">섭외 회신 대기</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M6 금융 규제와 데이터</dd>
+            <dt>일정</dt><dd class="strong">9월 19일 (토) 09:30~16:30</dd>
+            <dt>장소</dt><dd>온라인</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-ok">
+      <article class="card">
+        <svg class="avatar" style="--hair:#4a3428; --cloth:#f2b28c"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">오세영</h2>
+            <span class="badge">확정</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M7 대시보드로 보고하기</dd>
+            <dt>일정</dt><dd class="strong">9월 25일 (목) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-wait">
+      <article class="card">
+        <svg class="avatar" style="--hair:#232a34; --cloth:#a8c8e8"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">배수민</h2>
+            <span class="badge">강의안 회신 대기</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M8 AI로 문서 자동화</dd>
+            <dt>일정</dt><dd class="strong">10월 2일 (목) 10:00~17:00</dd>
+            <dt>장소</dt><dd>강남 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-hold">
+      <article class="card">
+        <svg class="avatar" style="--hair:#6b4a2f; --cloth:#cbb28a"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">문태경</h2>
+            <span class="badge">일정 조율 중</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M9 데이터 시각화 실무</dd>
+            <dt>일정</dt><dd class="strong">10월 10일 (금) 13:00~18:00</dd>
+            <dt>장소</dt><dd>온라인</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-ok">
+      <article class="card">
+        <svg class="avatar" style="--hair:#40332c; --cloth:#e3a9c4"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">류해린</h2>
+            <span class="badge">확정</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M10 고객 데이터 분석</dd>
+            <dt>일정</dt><dd class="strong">10월 17일 (금) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-wait">
+      <article class="card">
+        <svg class="avatar" style="--hair:#1e2a25; --cloth:#8fbf9f"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">신도윤</h2>
+            <span class="badge">섭외 회신 대기</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M11 실습 프로젝트 코칭</dd>
+            <dt>일정</dt><dd class="strong">10월 24일 (금) 10:00~17:00</dd>
+            <dt>장소</dt><dd>마포 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+    <li class="tray t-done">
+      <article class="card">
+        <svg class="avatar" style="--hair:#55402f; --cloth:#b9bec9"><use href="#pixel-person"/></svg>
+        <div class="content">
+          <div class="head">
+            <h2 class="name">장예은</h2>
+            <span class="badge">종료</span>
+          </div>
+          <dl class="rows">
+            <dt>담당모듈</dt><dd>M12 성과 측정과 리포팅</dd>
+            <dt>일정</dt><dd class="strong">10월 31일 (금) 10:00~17:00</dd>
+            <dt>장소</dt><dd>강남 교육장</dd>
+          </dl>
+        </div>
+      </article>
+    </li>
+
+  </ul>
+</main>
+
+<script>
+(function () {
+  var trays  = Array.prototype.slice.call(document.querySelectorAll('.tray'));
+  var bar    = document.getElementById('filters');
+  var tally  = document.getElementById('tally');
+  var total  = trays.length;
+  var calm   = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var TONES = ['t-ok', 't-wait', 't-hold', 't-done'];
+  var ORDER = ['확정', '강의안 회신 대기', '섭외 회신 대기', '일정 조율 중', '종료'];
+
+  // 상태는 카드에 적힌 배지 글자를 그대로 읽습니다.
+  // 카드를 더하거나 상태를 고치면 버튼과 숫자가 따라옵니다.
+  var groups = {};
+  trays.forEach(function (tray) {
+    var status = tray.querySelector('.badge').textContent.trim();
+    tray.dataset.status = status;
+
+    if (!groups[status]) {
+      groups[status] = { count: 0, tone: 't-done' };
+      TONES.forEach(function (t) { if (tray.classList.contains(t)) groups[status].tone = t; });
+    }
+    groups[status].count++;
+  });
+
+  var statuses = Object.keys(groups).sort(function (a, b) {
+    var ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+
+  function chip(label, value, tone, count) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip ' + tone;
+    b.dataset.value = value;
+    b.setAttribute('aria-pressed', value === '전체' ? 'true' : 'false');
+    b.innerHTML = label + '<span class="n">' + count + '</span>';
+    return b;
+  }
+
+  bar.appendChild(chip('전체', '전체', 't-all', total));
+  statuses.forEach(function (s) {
+    bar.appendChild(chip(s, s, groups[s].tone, groups[s].count));
+  });
+
+  // 보이는 카드만 순서대로 자리를 잡습니다.
+  var watcher = ('IntersectionObserver' in window) && !calm
+    ? new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          e.target.classList.add('shown');
+          obs.unobserve(e.target);
+        });
+      }, { threshold: .15, rootMargin: '0px 0px -40px 0px' })
+    : null;
+
+  function apply(value) {
+    var shown = 0;
+
+    trays.forEach(function (tray) {
+      var match = (value === '전체') || (tray.dataset.status === value);
+      tray.hidden = !match;
+
+      if (!match) {
+        tray.classList.remove('shown');
+        if (watcher) watcher.unobserve(tray);
+        return;
+      }
+
+      tray.style.setProperty('--i', shown);
+      shown++;
+
+      if (!watcher) { tray.classList.add('shown'); return; }
+      tray.classList.remove('shown');
+      watcher.observe(tray);
+    });
+
+    Array.prototype.forEach.call(bar.children, function (b) {
+      b.setAttribute('aria-pressed', b.dataset.value === value ? 'true' : 'false');
+    });
+
+    tally.textContent = (value === '전체')
+      ? '전체 ' + total + '명'
+      : value + ' ' + shown + '명 / 전체 ' + total + '명';
+  }
+
+  bar.addEventListener('click', function (e) {
+    var b = e.target.closest('.chip');
+    if (b) apply(b.dataset.value);
+  });
+
+  apply('전체');
+})();
+</script>
+
+</body>
+</html>

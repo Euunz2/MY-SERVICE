@@ -1,0 +1,22 @@
+# Claude Code 로컬 링크 폴더.
+# .agents/skills 를 가리키는 junction 이라 올리면 내용이 중복됩니다.
+.claude/
+
+# npx skills 로 설치한 외부 스킬 원본.
+# skills-lock.json 이 있으면 언제든 다시 받을 수 있어 저장소에 담지 않습니다.
+.agents/
+
+# OS / 편집기
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# 의존성 / 빌드 산출물
+node_modules/
+dist/
+build/
+*.log
