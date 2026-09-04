@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>강사 배정 현황</title>
+<title>정산 퀘스트</title>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet"
@@ -11,9 +11,8 @@
 
 <style>
 /* ---------------------------------------------------------------
-   토큰. 한 벌만 정의하고 다크모드에서 값만 갈아끼웁니다.
-   상태색은 강조색이 아니라 의미색입니다. 트레이 / 배지 / 칩에서
-   같은 상태는 항상 같은 값을 씁니다.
+   토큰 한 벌. 다크모드에서 값만 갈아끼웁니다.
+   상태색은 강조색이 아니라 의미색입니다.
 ---------------------------------------------------------------- */
 :root {
   color-scheme: light;
@@ -21,28 +20,29 @@
   --bg:        #f4f5f7;
   --tray:      #ffffff;
   --surface:   #ffffff;
+  --sunken:    #f7f8fa;
   --hairline:  rgb(16 20 28 / .07);
+  --rule:      rgb(16 20 28 / .06);
   --inner-lip: rgb(255 255 255 / .9);
 
   --ink:       #1c2027;
   --ink-soft:  #4a515d;
   --muted:     #79818f;
 
+  --due-tray:  #f8eee0;  --due-fg:  #8a5a15;  --due-edge:  rgb(138 90 21 / .24);
+  --req-tray:  #e8eef7;  --req-fg:  #33608f;  --req-edge:  rgb(51 96 143 / .22);
   --ok-tray:   #eaf2ed;  --ok-fg:   #2f6c50;  --ok-edge:   rgb(47 108 80 / .22);
-  --wait-tray: #f8eee0;  --wait-fg: #8a5a15;  --wait-edge: rgb(138 90 21 / .24);
-  --hold-tray: #e8eef7;  --hold-fg: #33608f;  --hold-edge: rgb(51 96 143 / .22);
-  --done-tray: #eeeff2;  --done-fg: #6d7481;  --done-edge: rgb(109 116 129 / .2);
+
+  --gold:      #d9a441;
+  --gold-deep: #a97620;
 
   --shadow: 0 1px 2px rgb(16 20 28 / .04), 0 8px 24px -12px rgb(16 20 28 / .14);
   --shadow-lift: 0 2px 4px rgb(16 20 28 / .05), 0 18px 40px -16px rgb(16 20 28 / .22);
 
   --ease: cubic-bezier(.32, .72, 0, 1);
 
-  /* 둥근 정도는 한 벌로 고정합니다.
-     트레이 22 / 카드 16 / 아바타 12 / 누르는 것은 전부 알약. */
   --r-tray: 22px;
   --r-card: 16px;
-  --r-avatar: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -52,17 +52,21 @@
     --bg:        #121418;
     --tray:      #1b1e24;
     --surface:   #212530;
+    --sunken:    #1a1d24;
     --hairline:  rgb(255 255 255 / .09);
+    --rule:      rgb(255 255 255 / .07);
     --inner-lip: rgb(255 255 255 / .06);
 
     --ink:       #e9ebef;
     --ink-soft:  #b6bcc7;
     --muted:     #8b939f;
 
+    --due-tray:  #322718;  --due-fg:  #dfae66;  --due-edge:  rgb(223 174 102 / .28);
+    --req-tray:  #1d2733;  --req-fg:  #8fb8e0;  --req-edge:  rgb(143 184 224 / .26);
     --ok-tray:   #1c2c25;  --ok-fg:   #7cc4a1;  --ok-edge:   rgb(124 196 161 / .26);
-    --wait-tray: #322718;  --wait-fg: #dfae66;  --wait-edge: rgb(223 174 102 / .28);
-    --hold-tray: #1d2733;  --hold-fg: #8fb8e0;  --hold-edge: rgb(143 184 224 / .26);
-    --done-tray: #24262c;  --done-fg: #99a1ad;  --done-edge: rgb(153 161 173 / .22);
+
+    --gold:      #e8bd63;
+    --gold-deep: #c99a35;
 
     --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 10px 28px -14px rgb(0 0 0 / .6);
     --shadow-lift: 0 2px 6px rgb(0 0 0 / .34), 0 22px 46px -18px rgb(0 0 0 / .7);
@@ -84,23 +88,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* 아주 옅은 결. 고정 레이어라 스크롤 중 다시 그리지 않습니다. */
-.grain {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  opacity: .028;
-  background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>\
-<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter>\
-<rect width='140' height='140' filter='url(%23n)'/></svg>");
-}
-
 .page {
-  max-width: 1180px;
+  max-width: 1020px;
   margin: 0 auto;
-  padding: 56px 24px 96px;
+  padding: 48px 24px 120px;
 }
 
 /* ------------------------------ 머리말 ------------------------------ */
@@ -121,143 +112,257 @@ h1 {
 }
 
 .lede {
-  margin: 0 0 34px;
+  margin: 0 0 28px;
   font-size: 15px;
   color: var(--ink-soft);
-  max-width: 46ch;
+  max-width: 48ch;
   word-break: keep-all;
 }
 
-/* ------------------------------ 필터 ------------------------------ */
+/* ------------------------------ 시작 버튼 ------------------------------ */
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.chip {
+.go {
   font: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -.01em;
-  padding: 10px 16px;
+  letter-spacing: -.012em;
+  padding: 15px 26px;
   border-radius: 999px;
-  border: 1px solid var(--hairline);
-  background: var(--tray);
-  color: var(--ink-soft);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
   cursor: pointer;
-  transition: background .45s var(--ease), color .45s var(--ease),
-              border-color .45s var(--ease), transform .35s var(--ease);
+  transition: transform .35s var(--ease), opacity .35s var(--ease);
 }
 
-.chip:hover { color: var(--ink); border-color: rgb(120 130 150 / .35); }
-.chip:active { transform: scale(.975); }
-.chip:focus-visible { outline: 2px solid var(--hold-fg); outline-offset: 3px; }
+.go:active { transform: scale(.975); }
+.go:focus-visible { outline: 2px solid var(--req-fg); outline-offset: 3px; }
+.go[hidden] { display: none; }
 
-.chip[aria-pressed="true"] {
-  background: var(--chip-tray, var(--tray));
-  color: var(--chip-fg, var(--ink));
-  border-color: var(--chip-edge, var(--hairline));
+/* ------------------------------ 결과 ------------------------------ */
+
+.result[hidden] { display: none; }
+
+/* 상단 현황판 */
+.hud {
+  padding: 20px 22px;
+  margin-bottom: 18px;
+  border-radius: var(--r-tray);
+  background: var(--tray);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
 }
 
-.chip.t-all  { --chip-tray: var(--ink); --chip-fg: var(--bg); --chip-edge: var(--ink); }
-.chip.t-ok   { --chip-tray: var(--ok-tray);   --chip-fg: var(--ok-fg);   --chip-edge: var(--ok-edge); }
-.chip.t-wait { --chip-tray: var(--wait-tray); --chip-fg: var(--wait-fg); --chip-edge: var(--wait-edge); }
-.chip.t-hold { --chip-tray: var(--hold-tray); --chip-fg: var(--hold-fg); --chip-edge: var(--hold-edge); }
-.chip.t-done { --chip-tray: var(--done-tray); --chip-fg: var(--done-fg); --chip-edge: var(--done-edge); }
+.hud-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
 
-.chip .n {
-  margin-left: 7px;
+.hud-left {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
-  opacity: .62;
 }
-.chip[aria-pressed="true"] .n { opacity: .8; }
 
-.tally {
-  margin: 0 0 26px;
+.hud-left .sep { color: var(--muted); font-weight: 500; margin: 0 8px; }
+.hud-left .amt { color: var(--gold-deep); }
+
+.hud-right {
+  margin: 0;
   font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------ 명단 ------------------------------ */
-
-.roster {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
-  gap: 14px;
+.xp {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rule);
+  overflow: hidden;
 }
 
-/* 바깥 트레이. 상태색이 여기에 얹히고, 안쪽 카드는 그 위에 놓입니다. */
-.tray {
-  padding: 6px;
-  border-radius: var(--r-tray);
-  background: var(--tone-tray);
-  border: 1px solid var(--tone-edge);
-  transition: transform .55s var(--ease), box-shadow .55s var(--ease);
+.xp > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--ok-fg));
+  transition: width .7s var(--ease);
 }
 
-.tray[hidden] { display: none; }
-
-.tray.t-ok   { --tone-tray: var(--ok-tray);   --tone-edge: var(--ok-edge);   --tone-fg: var(--ok-fg); }
-.tray.t-wait { --tone-tray: var(--wait-tray); --tone-edge: var(--wait-edge); --tone-fg: var(--wait-fg); }
-.tray.t-hold { --tone-tray: var(--hold-tray); --tone-edge: var(--hold-edge); --tone-fg: var(--hold-fg); }
-.tray.t-done { --tone-tray: var(--done-tray); --tone-edge: var(--done-edge); --tone-fg: var(--done-fg); }
-
-.tray:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
-
-/* 안쪽 카드 */
-.card {
+/* 탭 두 개: 남은 정산 / 완료된 정산 */
+.tabs {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  padding: 18px 20px 19px;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.01em;
+  padding: 11px 17px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--tray);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background .4s var(--ease), color .4s var(--ease),
+              border-color .4s var(--ease), transform .3s var(--ease);
+}
+
+.tab:hover { color: var(--ink); }
+.tab:active { transform: scale(.975); }
+.tab:focus-visible { outline: 2px solid var(--req-fg); outline-offset: 3px; }
+
+.tab[aria-selected="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.tab .n {
+  margin-left: 7px;
+  font-variant-numeric: tabular-nums;
+  opacity: .6;
+}
+.tab[aria-selected="true"] .n { opacity: .85; }
+
+/* ------------------------------ 월 묶음 ------------------------------ */
+
+.month {
+  padding: 6px;
+  margin-bottom: 14px;
+  border-radius: var(--r-tray);
+  background: var(--tray);
+  border: 1px solid var(--hairline);
+}
+
+.inner {
+  padding: 18px 20px 20px;
   border-radius: var(--r-card);
   background: var(--surface);
   box-shadow: inset 0 1px 0 var(--inner-lip), var(--shadow);
 }
 
-.avatar {
-  width: 62px;
-  height: 62px;
-  flex: 0 0 62px;
-  border-radius: var(--r-avatar);
-  background: linear-gradient(180deg, rgb(127 140 165 / .1), rgb(127 140 165 / .04));
-  padding: 3px;
-  shape-rendering: crispEdges;
-  image-rendering: pixelated;
+.mhead {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
 }
 
-.content { flex: 1; min-width: 0; }
+.mhead .sep  { color: var(--muted); font-weight: 500; margin: 0 7px; }
+.mhead .rest { color: var(--ink-soft); font-weight: 600; }
+.mhead .done { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
-.head {
+.bar {
+  height: 6px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ok-fg);
+  opacity: .7;
+  transition: width .6s var(--ease);
+}
+
+/* ------------------------------ 퀘스트 줄 ------------------------------ */
+
+.quests { list-style: none; margin: 0; padding: 0; }
+
+.quest {
+  padding: 15px 0;
+  border-top: 1px solid var(--rule);
+  transition: opacity .38s var(--ease), transform .38s var(--ease);
+}
+
+.quest:first-child { border-top: 0; padding-top: 4px; }
+
+/* 완료 버튼을 누른 직후, 목록에서 빠져나가는 모습 */
+.quest.clearing {
+  opacity: 0;
+  transform: translateX(22px) scale(.98);
+}
+
+.q-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.q-main { flex: 1; min-width: 220px; }
+
+.q-title {
+  margin: 0 0 3px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.024em;
+  line-height: 1.3;
 }
 
-.name {
+.q-title .who { color: var(--ink); }
+.q-title .what { color: var(--ink-soft); font-weight: 600; font-size: 15px; word-break: keep-all; }
+
+.q-meta {
   margin: 0;
-  font-size: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.q-meta .dot { margin: 0 7px; opacity: .55; }
+
+.q-pay {
+  text-align: right;
+  min-width: 132px;
+  font-variant-numeric: tabular-nums;
+}
+
+.q-pay .amt {
+  display: block;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -.028em;
   line-height: 1.2;
+  color: var(--gold-deep);
+}
+
+.q-pay .cap {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .badge {
-  font-size: 12px;
+  display: inline-block;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -.01em;
-  padding: 6px 11px;
+  padding: 6px 10px;
   border-radius: 999px;
   white-space: nowrap;
   color: var(--tone-fg);
@@ -265,414 +370,678 @@ h1 {
   border: 1px solid var(--tone-edge);
 }
 
-.rows {
-  margin: 0;
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  column-gap: 16px;
-  row-gap: 6px;
-  font-size: 14px;
+.badge.due  { --tone-tray: var(--due-tray); --tone-fg: var(--due-fg); --tone-edge: var(--due-edge); }
+.badge.req  { --tone-tray: var(--req-tray); --tone-fg: var(--req-fg); --tone-edge: var(--req-edge); }
+.badge.done { --tone-tray: var(--ok-tray);  --tone-fg: var(--ok-fg);  --tone-edge: var(--ok-edge); }
+
+/* 줄 아래 버튼들 */
+.q-acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
-.rows dt {
-  white-space: nowrap;      /* 라벨은 절대 줄바꿈되지 않습니다 */
+.btn {
+  font: inherit;
   font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.012em;
+  padding: 10px 15px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--sunken);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: transform .28s var(--ease), background .3s var(--ease),
+              color .3s var(--ease), border-color .3s var(--ease);
+}
+
+.btn:hover { color: var(--ink); border-color: rgb(120 130 150 / .34); }
+.btn:active { transform: scale(.96); }
+.btn:focus-visible { outline: 2px solid var(--req-fg); outline-offset: 3px; }
+
+.btn.clear {
+  background: var(--ok-tray);
+  border-color: var(--ok-edge);
+  color: var(--ok-fg);
+}
+.btn.clear:hover { border-color: var(--ok-fg); }
+
+.btn.ghost { background: transparent; }
+
+/* 접어 둔 정산 상세. 14개 칸이 전부 여기에 들어갑니다. */
+details.detail { margin-top: 11px; }
+
+details.detail > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  padding: 3px 0;
+}
+
+details.detail > summary::-webkit-details-marker { display: none; }
+details.detail > summary::after { content: "▾"; font-size: 10px; transition: transform .3s var(--ease); }
+details.detail[open] > summary::after { transform: rotate(180deg); }
+details.detail > summary:hover { color: var(--ink-soft); }
+details.detail > summary:focus-visible { outline: 2px solid var(--req-fg); outline-offset: 3px; border-radius: 6px; }
+
+.sheet {
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 18px;
+  font-size: 13px;
+}
+
+.sheet div { min-width: 0; }
+.sheet dt { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+.sheet dd {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+.sheet dd.hi { color: var(--ink); }
+.sheet dd.pay { color: var(--gold-deep); }
+
+/* 완료 목록은 한 단계 가라앉힙니다 */
+.month.is-done .inner { opacity: .82; }
+.month.is-done .q-pay .amt { color: var(--ink-soft); }
+
+.empty {
+  margin: 0;
+  padding: 26px 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ------------------------------ 수정 창 ------------------------------ */
+
+dialog#edit {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-tray);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+}
+
+dialog#edit::backdrop { background: rgb(12 15 20 / .48); backdrop-filter: blur(2px); }
+
+.dlg-body { padding: 24px 24px 8px; }
+
+.dlg-body h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.026em;
+}
+
+.dlg-body .sub {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+
+.form label { display: block; min-width: 0; }
+.form .wide { grid-column: 1 / -1; }
+
+.form span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--muted);
 }
 
-.rows dd {
-  margin: 0;
-  min-width: 0;
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
-
-.rows dd.strong {
+.form input {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--sunken);
   color: var(--ink);
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
-.t-done .card { opacity: .78; }
+.form input:focus-visible { outline: 2px solid var(--req-fg); outline-offset: 1px; }
 
-/* ------------------------------ 등장 모션 ------------------------------
-   MOTION_INTENSITY 4. 뒤에서 IntersectionObserver 가 붙입니다.
-   목적은 연출이 아니라 순서 인지: 카드가 위에서 아래로 차례로 자리를 잡습니다.
-   transform / opacity 만 움직입니다.
------------------------------------------------------------------------- */
+.calc {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px 16px;
+  font-size: 13px;
+}
 
-.tray {
+.calc dt { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.calc dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.calc dd.pay { color: var(--gold-deep); }
+
+.dlg-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px 22px;
+}
+
+.btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  padding: 11px 20px;
+}
+.btn.primary:hover { color: var(--bg); border-color: var(--ink); }
+
+/* ------------------------------ 알림 한 줄 ------------------------------ */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 60;
+  transform: translate(-50%, 16px);
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 13px 20px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -.012em;
+  text-align: center;
+  box-shadow: var(--shadow-lift);
   opacity: 0;
-  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity .34s var(--ease), transform .34s var(--ease);
 }
 
-.tray.shown {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity .65s var(--ease) calc(var(--i, 0) * 42ms),
-    transform .65s var(--ease) calc(var(--i, 0) * 42ms),
-    box-shadow .55s var(--ease);
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ------------------------------ 동전 / 반짝이 ------------------------------ */
+
+.fx {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.tray.shown:hover { transition-delay: 0s; }
+.coin, .spark {
+  position: absolute;
+  will-change: transform, opacity;
+}
+
+.coin {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffe9ae, var(--gold) 58%, var(--gold-deep));
+  box-shadow: 0 0 0 1px rgb(120 84 16 / .35), 0 2px 6px rgb(120 84 16 / .3);
+  animation: coin .95s cubic-bezier(.2, .7, .35, 1) forwards;
+}
+
+.spark {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: var(--gold);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  animation: spark .7s var(--ease) forwards;
+}
+
+@keyframes coin {
+  0%   { transform: translate(0, 0) scale(.5) rotate(0deg); opacity: 0; }
+  14%  { opacity: 1; }
+  52%  { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 1; }
+  100% { transform: translate(calc(var(--dx) * 1.22), calc(var(--dy) + 190px)) scale(.72) rotate(var(--rot)); opacity: 0; }
+}
+
+@keyframes spark {
+  0%   { transform: translate(0, 0) scale(.2); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.25) rotate(120deg); opacity: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .tray { opacity: 1; transform: none; }
-  .tray, .tray.shown, .chip, .card { transition: none !important; }
-  .tray:hover { transform: none; }
+  .go, .btn, .tab, .quest, .toast, .xp > i, .bar > i { transition: none !important; }
+  .quest.clearing { opacity: 0; transform: none; }
+  .coin, .spark { display: none; }
 }
 
 /* ------------------------------ 좁은 화면 ------------------------------ */
 
 @media (max-width: 767px) {
-  .page { padding: 40px 16px 72px; }
-  .roster { grid-template-columns: 1fr; }
-  .card { padding: 16px; gap: 13px; }
-  .avatar { width: 54px; height: 54px; flex-basis: 54px; }
-  .rows { grid-template-columns: 1fr; row-gap: 2px; }
-  .rows dt { margin-top: 7px; }
+  .page { padding: 36px 16px 110px; }
+  .inner { padding: 16px; }
+  .hud { padding: 17px 16px; }
+  .q-pay { text-align: left; min-width: 0; }
+  .form { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<div class="grain" aria-hidden="true"></div>
-
-<!-- 픽셀 캐릭터 도안 한 벌.
-     사람마다 바뀌는 것은 --hair 와 --cloth 두 값뿐입니다. -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="pixel-person" viewBox="0 0 16 16">
-    <rect x="5" y="3" width="6" height="7" fill="#f0c9a4"/>
-    <rect x="4" y="2" width="8" height="2" fill="var(--hair)"/>
-    <rect x="5" y="4" width="6" height="1" fill="var(--hair)"/>
-    <rect x="4" y="4" width="1" height="5" fill="var(--hair)"/>
-    <rect x="11" y="4" width="1" height="5" fill="var(--hair)"/>
-    <rect x="6" y="6" width="1" height="1" fill="#3a3630"/>
-    <rect x="9" y="6" width="1" height="1" fill="#3a3630"/>
-    <rect x="7" y="8" width="2" height="1" fill="#c98d6d"/>
-    <rect x="7" y="10" width="2" height="1" fill="#e0b189"/>
-    <rect x="4" y="11" width="8" height="5" fill="var(--cloth)"/>
-    <rect x="2" y="12" width="2" height="4" fill="var(--cloth)"/>
-    <rect x="12" y="12" width="2" height="4" fill="var(--cloth)"/>
-    <rect x="2" y="12" width="2" height="4" fill="#000" opacity=".14"/>
-    <rect x="12" y="12" width="2" height="4" fill="#000" opacity=".14"/>
-    <rect x="7" y="11" width="2" height="1" fill="#e0b189"/>
-  </symbol>
-</svg>
-
 <main class="page">
 
   <p class="disclaimer">예시 자료로 만든 연습 화면입니다</p>
 
-  <h1>강사 배정 현황</h1>
-  <p class="lede">12개 모듈, 9월 3일부터 10월 31일까지. 회신을 기다리는 분부터 확인하세요.</p>
+  <h1>정산 퀘스트</h1>
+  <p class="lede">월별로 아직 정산이 끝나지 않은 건만 모았습니다. 위에서부터 하나씩 완료 처리하세요.</p>
 
-  <div class="filters" id="filters" role="group" aria-label="상태로 거르기"></div>
-  <p class="tally" id="tally" aria-live="polite"></p>
+  <button type="button" class="go" id="go">정산 퀘스트 만들기</button>
 
-  <ul class="roster" id="roster">
+  <section class="result" id="result" hidden>
 
-    <li class="tray t-wait">
-      <article class="card">
-        <svg class="avatar" style="--hair:#3b2f2a; --cloth:#e9a4a4"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">최유라</h2>
-            <span class="badge">강의안 회신 대기</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M4 기획자를 위한 금융데이터 활용 실무</dd>
-            <dt>일정</dt><dd class="strong">9월 5일 (토) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
+    <div class="hud">
+      <div class="hud-top">
+        <p class="hud-left" id="hudLeft"></p>
+        <p class="hud-right" id="hudRight"></p>
+      </div>
+      <div class="xp" role="img" id="xp" aria-label="진행도"><i id="xpFill"></i></div>
+    </div>
 
-    <li class="tray t-ok">
-      <article class="card">
-        <svg class="avatar" style="--hair:#1f2937; --cloth:#7fb3d5"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">김도현</h2>
-            <span class="badge">확정</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M1 데이터 리터러시 기초</dd>
-            <dt>일정</dt><dd class="strong">9월 3일 (목) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
+    <div class="tabs" role="tablist" aria-label="정산 상태로 보기">
+      <button type="button" class="tab" id="tabRest" role="tab" data-tab="rest"
+              aria-selected="true" aria-controls="panel">남은 정산 <span class="n" id="nRest">0</span></button>
+      <button type="button" class="tab" id="tabDone" role="tab" data-tab="done"
+              aria-selected="false" aria-controls="panel">완료된 정산 <span class="n" id="nDone">0</span></button>
+    </div>
 
-    <li class="tray t-ok">
-      <article class="card">
-        <svg class="avatar" style="--hair:#5c4033; --cloth:#9bc995"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">박서연</h2>
-            <span class="badge">확정</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M2 금융 데이터 다루기</dd>
-            <dt>일정</dt><dd class="strong">9월 4일 (금) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
+    <div id="panel" role="tabpanel" aria-live="polite"></div>
 
-    <li class="tray t-hold">
-      <article class="card">
-        <svg class="avatar" style="--hair:#2b2b2b; --cloth:#f0c47b"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">이준호</h2>
-            <span class="badge">일정 조율 중</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M3 리스크 데이터 이해</dd>
-            <dt>일정</dt><dd class="strong">9월 11일 (목) 10:00~17:00</dd>
-            <dt>장소</dt><dd>강남 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
+  </section>
 
-    <li class="tray t-ok">
-      <article class="card">
-        <svg class="avatar" style="--hair:#7a4a2b; --cloth:#b3a7e0"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">정민아</h2>
-            <span class="badge">확정</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M5 데이터 기반 서비스 기획</dd>
-            <dt>일정</dt><dd class="strong">9월 12일 (금) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-wait">
-      <article class="card">
-        <svg class="avatar" style="--hair:#3a3a4a; --cloth:#86c7c1"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">한지훈</h2>
-            <span class="badge">섭외 회신 대기</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M6 금융 규제와 데이터</dd>
-            <dt>일정</dt><dd class="strong">9월 19일 (토) 09:30~16:30</dd>
-            <dt>장소</dt><dd>온라인</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-ok">
-      <article class="card">
-        <svg class="avatar" style="--hair:#4a3428; --cloth:#f2b28c"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">오세영</h2>
-            <span class="badge">확정</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M7 대시보드로 보고하기</dd>
-            <dt>일정</dt><dd class="strong">9월 25일 (목) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-wait">
-      <article class="card">
-        <svg class="avatar" style="--hair:#232a34; --cloth:#a8c8e8"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">배수민</h2>
-            <span class="badge">강의안 회신 대기</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M8 AI로 문서 자동화</dd>
-            <dt>일정</dt><dd class="strong">10월 2일 (목) 10:00~17:00</dd>
-            <dt>장소</dt><dd>강남 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-hold">
-      <article class="card">
-        <svg class="avatar" style="--hair:#6b4a2f; --cloth:#cbb28a"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">문태경</h2>
-            <span class="badge">일정 조율 중</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M9 데이터 시각화 실무</dd>
-            <dt>일정</dt><dd class="strong">10월 10일 (금) 13:00~18:00</dd>
-            <dt>장소</dt><dd>온라인</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-ok">
-      <article class="card">
-        <svg class="avatar" style="--hair:#40332c; --cloth:#e3a9c4"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">류해린</h2>
-            <span class="badge">확정</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M10 고객 데이터 분석</dd>
-            <dt>일정</dt><dd class="strong">10월 17일 (금) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-wait">
-      <article class="card">
-        <svg class="avatar" style="--hair:#1e2a25; --cloth:#8fbf9f"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">신도윤</h2>
-            <span class="badge">섭외 회신 대기</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M11 실습 프로젝트 코칭</dd>
-            <dt>일정</dt><dd class="strong">10월 24일 (금) 10:00~17:00</dd>
-            <dt>장소</dt><dd>마포 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-    <li class="tray t-done">
-      <article class="card">
-        <svg class="avatar" style="--hair:#55402f; --cloth:#b9bec9"><use href="#pixel-person"/></svg>
-        <div class="content">
-          <div class="head">
-            <h2 class="name">장예은</h2>
-            <span class="badge">종료</span>
-          </div>
-          <dl class="rows">
-            <dt>담당모듈</dt><dd>M12 성과 측정과 리포팅</dd>
-            <dt>일정</dt><dd class="strong">10월 31일 (금) 10:00~17:00</dd>
-            <dt>장소</dt><dd>강남 교육장</dd>
-          </dl>
-        </div>
-      </article>
-    </li>
-
-  </ul>
 </main>
 
+<!-- 수정 창. 눌러도 저장되지 않고 예시 문장만 뜹니다. -->
+<dialog id="edit">
+  <form method="dialog" id="editForm">
+    <div class="dlg-body">
+      <h2 id="editTitle">정산 내역 수정</h2>
+      <p class="sub" id="editSub"></p>
+
+      <div class="form">
+        <label class="wide"><span>고객사</span><input type="text" id="f-client" autocomplete="off"></label>
+        <label class="wide"><span>교육명</span><input type="text" id="f-course" autocomplete="off"></label>
+        <label><span>교육일자</span><input type="text" id="f-date" autocomplete="off"></label>
+        <label><span>강사</span><input type="text" id="f-instructor" autocomplete="off"></label>
+        <label><span>강사료 (시간당)</span><input type="number" id="f-feeRate" step="1000" min="0"></label>
+        <label><span>시수</span><input type="number" id="f-feeHours" step="1" min="0"></label>
+        <label><span>사업비 (시간당)</span><input type="number" id="f-opsRate" step="1000" min="0"></label>
+        <label><span>시수</span><input type="number" id="f-opsHours" step="1" min="0"></label>
+        <label><span>계좌번호</span><input type="text" id="f-account" autocomplete="off"></label>
+        <label><span>은행</span><input type="text" id="f-bank" autocomplete="off"></label>
+
+        <dl class="calc">
+          <div><dt>금액(a)</dt><dd id="c-a">-</dd></div>
+          <div><dt>금액(b)</dt><dd id="c-b">-</dd></div>
+          <div><dt>원천세 3.3%</dt><dd id="c-t">-</dd></div>
+          <div><dt>정산액(b-1)</dt><dd class="pay" id="c-p">-</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="dlg-foot">
+      <button type="button" class="btn ghost" id="editCancel">닫기</button>
+      <button type="submit" class="btn primary" id="editSave">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="fx" id="fx" aria-hidden="true"></div>
+<p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+<script src="dummy-data.js"></script>
 <script>
 (function () {
-  var trays  = Array.prototype.slice.call(document.querySelectorAll('.tray'));
-  var bar    = document.getElementById('filters');
-  var tally  = document.getElementById('tally');
-  var total  = trays.length;
-  var calm   = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var TONES = ['t-ok', 't-wait', 't-hold', 't-done'];
-  var ORDER = ['확정', '강의안 회신 대기', '섭외 회신 대기', '일정 조율 중', '종료'];
+  // 눌렀을 때 뜨는 문장은 전부 여기에 미리 넣어 두었습니다.
+  // 연습 화면이라 실제로 저장되는 것은 없습니다.
+  var LINES = {
+    clear:  '정산 완료로 표시했습니다. 연습 화면이라 실제로 저장되지 않습니다.',
+    undo:   '다시 남은 정산으로 옮겼습니다. 연습 화면이라 실제로 저장되지 않습니다.',
+    save:   '수정한 내용을 확인했습니다. 연습 화면이라 실제로 저장되지 않습니다.',
+    allDone: '이번 분기 정산 퀘스트를 모두 마쳤습니다. 연습 화면이라 실제로 저장되지 않습니다.'
+  };
 
-  // 상태는 카드에 적힌 배지 글자를 그대로 읽습니다.
-  // 카드를 더하거나 상태를 고치면 버튼과 숫자가 따라옵니다.
-  var groups = {};
-  trays.forEach(function (tray) {
-    var status = tray.querySelector('.badge').textContent.trim();
-    tray.dataset.status = status;
+  var TAX = 0.033;
 
-    if (!groups[status]) {
-      groups[status] = { count: 0, tone: 't-done' };
-      TONES.forEach(function (t) { if (tray.classList.contains(t)) groups[status].tone = t; });
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var go      = document.getElementById('go');
+  var result  = document.getElementById('result');
+  var panel   = document.getElementById('panel');
+  var hudL    = document.getElementById('hudLeft');
+  var hudR    = document.getElementById('hudRight');
+  var xpFill  = document.getElementById('xpFill');
+  var xp      = document.getElementById('xp');
+  var tabRest = document.getElementById('tabRest');
+  var tabDone = document.getElementById('tabDone');
+  var nRest   = document.getElementById('nRest');
+  var nDone   = document.getElementById('nDone');
+  var fx      = document.getElementById('fx');
+  var toast   = document.getElementById('toast');
+  var dlg     = document.getElementById('edit');
+
+  // 더미 데이터를 화면용으로 한 벌 복사합니다. 원본은 건드리지 않습니다.
+  var rows = (window.SETTLEMENTS || []).map(function (r, i) {
+    var c = {};
+    for (var k in r) c[k] = r[k];
+    c.id = 'q' + i;
+    return c;
+  });
+
+  var view = 'rest';
+
+  /* ------------------------------ 셈 ------------------------------ */
+
+  function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+
+  function month(row) {
+    var p = row.date.split('-');
+    return { key: p[0] + '-' + p[1], label: Number(p[1]) + '월', d: Number(p[2]) };
+  }
+
+  function when(row) {
+    var m = month(row);
+    return m.label + ' ' + m.d + '일 (' + row.day + ')';
+  }
+
+  function isDone(row) { return row.status === '정산완료'; }
+
+  function tone(row) {
+    return isDone(row) ? 'done' : (row.status === '미정산' ? 'due' : 'req');
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  /* ------------------------------ 그리기 ------------------------------ */
+
+  function group(list) {
+    var keys = [], bag = {};
+    list.forEach(function (r) {
+      var m = month(r);
+      if (!bag[m.key]) { bag[m.key] = { label: m.label, rows: [] }; keys.push(m.key); }
+      bag[m.key].rows.push(r);
+    });
+    keys.sort();
+    return keys.map(function (k) {
+      bag[k].rows.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+      return bag[k];
+    });
+  }
+
+  function questHTML(r) {
+    var done = isDone(r);
+
+    var acts = done
+      ? '<button type="button" class="btn undo" data-act="undo" data-id="' + r.id + '">되돌리기</button>'
+      : '<button type="button" class="btn clear" data-act="clear" data-id="' + r.id + '">완료 처리</button>' +
+        '<button type="button" class="btn" data-act="edit" data-id="' + r.id + '">수정</button>';
+
+    return '' +
+      '<li class="quest" id="' + r.id + '">' +
+        '<div class="q-top">' +
+          '<div class="q-main">' +
+            '<p class="q-title">' +
+              '<span class="who">' + esc(r.instructor) + '</span>' +
+              '<span class="what">' + esc(r.course) + '</span>' +
+              '<span class="badge ' + tone(r) + '">' + esc(r.status) + '</span>' +
+            '</p>' +
+            '<p class="q-meta">' + esc(r.client) + '<span class="dot">·</span>' + when(r) +
+              '<span class="dot">·</span>' + r.feeHours + '시수</p>' +
+          '</div>' +
+          '<p class="q-pay">' +
+            '<span class="amt">' + won(r.payout) + '</span>' +
+            '<span class="cap">정산액 (b-1)</span>' +
+          '</p>' +
+        '</div>' +
+        '<details class="detail">' +
+          '<summary>정산 상세</summary>' +
+          '<dl class="sheet">' +
+            '<div><dt>고객사</dt><dd class="hi">' + esc(r.client) + '</dd></div>' +
+            '<div><dt>교육명</dt><dd class="hi">' + esc(r.course) + '</dd></div>' +
+            '<div><dt>교육일자</dt><dd>' + when(r) + '</dd></div>' +
+            '<div><dt>강사</dt><dd class="hi">' + esc(r.instructor) + '</dd></div>' +
+            '<div><dt>강사료</dt><dd>' + won(r.feeRate) + '</dd></div>' +
+            '<div><dt>시수</dt><dd>' + r.feeHours + '시수</dd></div>' +
+            '<div><dt>금액(a)</dt><dd class="hi">' + won(r.amountA) + '</dd></div>' +
+            '<div><dt>사업비</dt><dd>' + won(r.opsRate) + '</dd></div>' +
+            '<div><dt>시수</dt><dd>' + r.opsHours + '시수</dd></div>' +
+            '<div><dt>금액(b)</dt><dd class="hi">' + won(r.amountB) + '</dd></div>' +
+            '<div><dt>원천세</dt><dd>-' + won(r.tax) + '</dd></div>' +
+            '<div><dt>정산액(b-1)</dt><dd class="pay">' + won(r.payout) + '</dd></div>' +
+            '<div><dt>계좌번호</dt><dd>' + esc(r.account) + '</dd></div>' +
+            '<div><dt>은행</dt><dd>' + esc(r.bank) + '</dd></div>' +
+          '</dl>' +
+        '</details>' +
+        '<div class="q-acts">' + acts + '</div>' +
+      '</li>';
+  }
+
+  function monthHTML(g, showBar) {
+    var sum = g.rows.reduce(function (s, r) { return s + r.payout; }, 0);
+
+    // 그 달 전체 건수 대비 완료 비율. 남은 목록에서만 막대를 보입니다.
+    var all  = rows.filter(function (r) { return month(r).label === g.label; });
+    var done = all.filter(isDone).length;
+    var pct  = Math.round(done / all.length * 100);
+
+    var head = '<p class="mhead">' + g.label +
+      '<span class="sep">·</span><span class="rest">' + g.rows.length + '건</span>' +
+      '<span class="sep">·</span><span class="rest">' + won(sum) + '</span>' +
+      '<span class="sep">·</span><span class="done">' + all.length + '건 중 ' + done + '건 완료</span>' +
+      '</p>';
+
+    var bar = showBar
+      ? '<div class="bar" role="img" aria-label="' + all.length + '건 중 ' + done + '건 완료">' +
+          '<i style="width:' + pct + '%"></i></div>'
+      : '';
+
+    return '<section class="month' + (showBar ? '' : ' is-done') + '"><div class="inner">' +
+      head + bar +
+      '<ul class="quests">' + g.rows.map(questHTML).join('') + '</ul>' +
+      '</div></section>';
+  }
+
+  function render() {
+    var rest = rows.filter(function (r) { return !isDone(r); });
+    var done = rows.filter(isDone);
+    var list = view === 'rest' ? rest : done;
+
+    var restSum = rest.reduce(function (s, r) { return s + r.payout; }, 0);
+    var pct = Math.round(done.length / rows.length * 100);
+
+    hudL.innerHTML = '남은 퀘스트 ' + rest.length + '건<span class="sep">·</span>정산액 합계 ' +
+                     '<span class="amt">' + won(restSum) + '</span>';
+    hudR.textContent = '전체 ' + rows.length + '건 중 ' + done.length + '건 완료 · ' + pct + '%';
+    xpFill.style.width = pct + '%';
+    xp.setAttribute('aria-label', '전체 ' + rows.length + '건 중 ' + done.length + '건 완료');
+
+    nRest.textContent = rest.length;
+    nDone.textContent = done.length;
+    tabRest.setAttribute('aria-selected', view === 'rest' ? 'true' : 'false');
+    tabDone.setAttribute('aria-selected', view === 'done' ? 'true' : 'false');
+
+    if (!list.length) {
+      panel.innerHTML = '<p class="empty">' +
+        (view === 'rest' ? '남은 정산이 없습니다. 이번 분기 퀘스트를 모두 마쳤습니다.'
+                         : '아직 완료 처리한 정산이 없습니다.') + '</p>';
+      return;
     }
-    groups[status].count++;
-  });
 
-  var statuses = Object.keys(groups).sort(function (a, b) {
-    var ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-
-  function chip(label, value, tone, count) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip ' + tone;
-    b.dataset.value = value;
-    b.setAttribute('aria-pressed', value === '전체' ? 'true' : 'false');
-    b.innerHTML = label + '<span class="n">' + count + '</span>';
-    return b;
+    panel.innerHTML = group(list).map(function (g) {
+      return monthHTML(g, view === 'rest');
+    }).join('');
   }
 
-  bar.appendChild(chip('전체', '전체', 't-all', total));
-  statuses.forEach(function (s) {
-    bar.appendChild(chip(s, s, groups[s].tone, groups[s].count));
-  });
+  /* ------------------------------ 동전 / 반짝이 ------------------------------ */
 
-  // 보이는 카드만 순서대로 자리를 잡습니다.
-  var watcher = ('IntersectionObserver' in window) && !calm
-    ? new IntersectionObserver(function (entries, obs) {
-        entries.forEach(function (e) {
-          if (!e.isIntersecting) return;
-          e.target.classList.add('shown');
-          obs.unobserve(e.target);
-        });
-      }, { threshold: .15, rootMargin: '0px 0px -40px 0px' })
-    : null;
+  function burst(x, y) {
+    if (calm) return;
 
-  function apply(value) {
-    var shown = 0;
+    for (var i = 0; i < 20; i++) {
+      var coin = i % 5 !== 4;
+      var el = document.createElement('span');
+      el.className = coin ? 'coin' : 'spark';
 
-    trays.forEach(function (tray) {
-      var match = (value === '전체') || (tray.dataset.status === value);
-      tray.hidden = !match;
+      var ang  = (-90 + (Math.random() * 150 - 75)) * Math.PI / 180;
+      var dist = 55 + Math.random() * 95;
 
-      if (!match) {
-        tray.classList.remove('shown');
-        if (watcher) watcher.unobserve(tray);
-        return;
-      }
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      el.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+      el.style.setProperty('--dy', (Math.sin(ang) * dist - 26) + 'px');
+      el.style.setProperty('--rot', (Math.random() * 620 - 310) + 'deg');
+      el.style.animationDelay = Math.round(Math.random() * 110) + 'ms';
 
-      tray.style.setProperty('--i', shown);
-      shown++;
-
-      if (!watcher) { tray.classList.add('shown'); return; }
-      tray.classList.remove('shown');
-      watcher.observe(tray);
-    });
-
-    Array.prototype.forEach.call(bar.children, function (b) {
-      b.setAttribute('aria-pressed', b.dataset.value === value ? 'true' : 'false');
-    });
-
-    tally.textContent = (value === '전체')
-      ? '전체 ' + total + '명'
-      : value + ' ' + shown + '명 / 전체 ' + total + '명';
+      fx.appendChild(el);
+      (function (node) {
+        setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 1200);
+      })(el);
+    }
   }
 
-  bar.addEventListener('click', function (e) {
-    var b = e.target.closest('.chip');
-    if (b) apply(b.dataset.value);
+  var toastTimer;
+  function say(text) {
+    toast.textContent = text;
+    toast.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('on'); }, 3200);
+  }
+
+  /* ------------------------------ 손 ------------------------------ */
+
+  function find(id) {
+    for (var i = 0; i < rows.length; i++) if (rows[i].id === id) return rows[i];
+    return null;
+  }
+
+  function clear(row, btn) {
+    var box = btn.getBoundingClientRect();
+    burst(box.left + box.width / 2, box.top + box.height / 2);
+
+    var li = document.getElementById(row.id);
+    if (li) li.classList.add('clearing');
+
+    setTimeout(function () {
+      row.status = '정산완료';
+      render();
+      var left = rows.filter(function (r) { return !isDone(r); }).length;
+      say(left ? LINES.clear : LINES.allDone);
+    }, calm ? 0 : 340);
+  }
+
+  function undo(row) {
+    row.status = '미정산';
+    render();
+    say(LINES.undo);
+  }
+
+  panel.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+
+    var row = find(btn.dataset.id);
+    if (!row) return;
+
+    if (btn.dataset.act === 'clear') clear(row, btn);
+    else if (btn.dataset.act === 'undo') undo(row);
+    else if (btn.dataset.act === 'edit') openEdit(row);
   });
 
-  apply('전체');
+  tabRest.addEventListener('click', function () { view = 'rest'; render(); });
+  tabDone.addEventListener('click', function () { view = 'done'; render(); });
+
+  /* ------------------------------ 수정 창 ------------------------------ */
+
+  var F = {};
+  ['client', 'course', 'date', 'instructor', 'feeRate', 'feeHours',
+   'opsRate', 'opsHours', 'account', 'bank'].forEach(function (k) {
+    F[k] = document.getElementById('f-' + k);
+  });
+
+  var cA = document.getElementById('c-a');
+  var cB = document.getElementById('c-b');
+  var cT = document.getElementById('c-t');
+  var cP = document.getElementById('c-p');
+
+  // 적은 값에 따라 금액이 어떻게 바뀌는지만 보여 줍니다. 저장은 하지 않습니다.
+  function recalc() {
+    var a = (+F.feeRate.value || 0) * (+F.feeHours.value || 0);
+    var b = (+F.opsRate.value || 0) * (+F.opsHours.value || 0);
+    var t = Math.floor(b * TAX);
+
+    cA.textContent = won(a);
+    cB.textContent = won(b);
+    cT.textContent = '-' + won(t);
+    cP.textContent = won(b - t);
+  }
+
+  Object.keys(F).forEach(function (k) { F[k].addEventListener('input', recalc); });
+
+  function openEdit(row) {
+    document.getElementById('editSub').textContent =
+      row.client + ' · ' + row.course + ' · ' + when(row);
+
+    Object.keys(F).forEach(function (k) { F[k].value = row[k]; });
+    recalc();
+
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', '');
+  }
+
+  document.getElementById('editCancel').addEventListener('click', function () { dlg.close(); });
+
+  document.getElementById('editForm').addEventListener('submit', function () {
+    // 값을 되돌려 넣지 않습니다. 문장만 뜹니다.
+    say(LINES.save);
+  });
+
+  /* ------------------------------ 시작 ------------------------------ */
+
+  go.addEventListener('click', function () {
+    go.hidden = true;
+    result.hidden = false;
+    render();
+  });
+
 })();
 </script>
 
